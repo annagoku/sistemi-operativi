@@ -19,7 +19,5 @@ gruppo 4 0.2
 ```
 ## Esecuzione del programma
 
-#Compilazion
-
-Sulla directory bin è presente il makefile.
+Per compilare il programma è sufficiente spostarsi sulla directory bin dove è presente il makefile.
 Usare comando make all
