@@ -17,4 +17,9 @@ gruppo 2 0.2
 gruppo 3 0.6
 gruppo 4 0.2
 ```
+## Esecuzione del programma
 
+#Compilazion
+
+Sulla directory bin è presente il makefile.
+Usare comando make all
