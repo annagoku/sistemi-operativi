@@ -8,14 +8,14 @@
 
 all: programManager corsoMaster studente
 
-programManager: header.h programManager.c
-	gcc -o programManager programManager.c
+programManager: ../src/header.h ../src/programManager.c
+	gcc -o programManager ../src/programManager.c
 
-corsoMaster: header.h corsoMaster.c
-	gcc -o corsoMaster corsoMaster.c
+corsoMaster: ../src/header.h ../src/corsoMaster.c
+	gcc -o corsoMaster ../src/corsoMaster.c
 
-studente: header.h studente.c
-	gcc -o studente studente.c
+studente: ../src/header.h ../src/studente.c
+	gcc -o studente ../src/studente.c
 
 clean: 
 	rm -f *.o studente corsoMaster programManager
