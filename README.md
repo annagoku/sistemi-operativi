@@ -17,7 +17,22 @@ gruppo 2 0.2
 gruppo 3 0.6
 gruppo 4 0.2
 ```
+
 ## Esecuzione del programma
 
+### Compilazione
 Per compilare il programma è sufficiente spostarsi sulla directory bin dove è presente il makefile.
-Usare comando make all
+```
+> cd bin
+> make all
+```
+Se non si dispone di make, è possibile usare la shell compila.sh
+```
+> cd bin
+> ./compila.sh
+```
+### Esecuzione
+Eseguire il ProgramMaster attraverso il comando
+```
+> ./ProgramMaster
+```
