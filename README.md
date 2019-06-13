@@ -17,4 +17,7 @@ gruppo 2 0.2
 gruppo 3 0.6
 gruppo 4 0.2
 ```
+## Esecuzione del programma
 
+Per compilare il programma è sufficiente spostarsi sulla directory bin dove è presente il makefile.
+Usare comando make all
