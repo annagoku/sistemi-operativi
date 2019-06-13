@@ -51,10 +51,8 @@ int main(int argc, char **argcv) {
 
     //printf ("Studente pid %d\n", pid);
     
-    //TODO per ora la metto uguale, ma e' da cambiare perche' fa schifo
+    //per comodita' imposto la matricola uguale al pid
     studente.matricola = pid;
-    
-    
 
     //stabilisco il gruppo dello studente in base alla matricola
     if(studente.matricola%2 == 0) {
@@ -63,9 +61,6 @@ int main(int argc, char **argcv) {
     else {
         studente.glab = '3';
     }
-    
-   
-    
     
     //recupero semaforo
     if ((sem_init=semget(SEM_ID, 2, 0600))==-1){

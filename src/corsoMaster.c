@@ -1,14 +1,12 @@
 #include "header.h"
 
-
-
 int     letturaRighe();
 void    letturaFile(gruppo_t *gruppi);
 void    suddividiGruppi(char **sudd, gruppo_t *gruppi, int nGruppi);
 void    calcoloVotiFinali();
-int conta_membrigruppo (int nome_g);
-int trova_maxvoto (int nome_g);
-int trova_leader (int name_g);
+int     conta_membrigruppo (int nome_g);
+int     trova_maxvoto (int nome_g);
+int     trova_leader (int name_g);
 
 
 pid_t   children[POP_SIZE];
@@ -20,11 +18,8 @@ int msg_id; //identificatore della coda di messaggi
 int msg_master;//identificatore della coda di messaggi master finale
 char nof_invites[3];
 
-
 struct shared_data *project_data;
 struct sembuf shr;
-
-
 
 void reset_sem();
 void fill_semshr();
@@ -52,8 +47,7 @@ int main(int argc, char **argcv) {
     struct sigaction end;  // strutture dati di sistema per la gestione dell'alarm
     sigset_t  mymask;
 
-
-    
+   
     nGruppi = letturaRighe();
     
     gruppi = (gruppo_t*) malloc(i*sizeof(gruppo_t));
@@ -115,7 +109,7 @@ int main(int argc, char **argcv) {
         printf("[CorsoMaster] errno=%d", errno);
         exit(-1);
     }
- //----------------------------impostazione coda di messaggi master finale
+    //----------------------------impostazione coda di messaggi master finale
 
 
     if((msg_master=msgget(MSG_MASTER, IPC_CREAT | IPC_EXCL | 0600))==-1) {
@@ -174,46 +168,40 @@ int main(int argc, char **argcv) {
     //mando il segnale di ALARM per chiudere lo scambio
     
     alarm(SIM_TIME); 
-    //PROOOOOOOVA
+    //Preallarme
     sleep(SIM_TIME-(SIM_TIME*25/100));
-     printf("[CorsoMaster]  Mando preallarme\n");
+    printf("[CorsoMaster]  Mando preallarme\n");
     for(i=0; i< POP_SIZE; i++) {
         kill(children[i], SIGUSR2);
     }
 
     while(n > 0){
         pid = wait(&status);
-        if ( WIFEXITED(status) ){
+        /*if ( WIFEXITED(status) ){
             
-            //printf("Processo %d ha finito %d\n", pid, WEXITSTATUS(status));
+            printf("Processo %d ha finito %d\n", pid, WEXITSTATUS(status));
 
-        }
+        }*/
         n--;
     }
     
 
     printf("[CorsoMaster] Step 5 - Computo della media\n");
-    //Da definire il computo della media partendo dalla shared memory
-
+    
     msgctl(msg_id, IPC_RMID, NULL);
     msgctl(msg_master, IPC_RMID, NULL);
     semctl(sem_init, 2, IPC_RMID, 0);
 
-    printf("[CorsoMaster] DEBUG Matricola primo studente in shr memory %d\n", project_data->vec[0].matricola);
-
     printf("Vuoi stampare il voto medio dei due esami? [Y/N]");
-
-    //scanf("%c", &printMedia);
-
-    printMedia = 'Y';
+    scanf("%c", &printMedia);
 
     switch (toupper(printMedia)){
 
         case 'Y':
             for (i=0; i<POP_SIZE; i++){
                 //calcolo media AdE e SO
-                    sommaAdE=sommaAdE+project_data->vec[i].voto_AdE;
-                    sommaSO=sommaSO+votiFinali[i].VotoSO;
+                sommaAdE=sommaAdE+project_data->vec[i].voto_AdE;
+                sommaSO=sommaSO+votiFinali[i].VotoSO;
             }
             //printf("SOMMA AdE: %d\n  SOMMA SO: %d\n", sommaAdE, sommaSO); 
                 
@@ -290,9 +278,6 @@ void letturaFile (gruppo_t *gruppi) {
             j++;
             
     } 
-    //printf("CHIUDO IL FILE\n");
-    //fclose(file);
-    //printf("HO CHIUSO IL FILE\n");
 
 }
 
@@ -300,16 +285,12 @@ void  suddividiGruppi(char **sudd, gruppo_t *gruppi, int nGruppi) {
     int i=0, j=0;
     int trovato=0;
     
-        
-    
-        
     for(i=0; i<POP_SIZE; i++) {
         
         if(i>(gruppi[j].max *(POP_SIZE-1))) {
             j++;
         }
         sudd[i] = gruppi[j].nof_elems_str;
-                
        
     }
 }
