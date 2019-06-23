@@ -7,6 +7,8 @@ void    calcoloVotiFinali();
 int     conta_membrigruppo (int nome_g);
 int     trova_maxvoto (int nome_g);
 int     trova_leader (int name_g);
+void    numstudentipervotoAdE();
+void    numstudentipervotoSO();
 
 
 pid_t   children[POP_SIZE];
@@ -71,6 +73,8 @@ int main(int argc, char **argcv) {
     }*/
     printf("[CorsoMaster] Step 0 - Lettura file OK, Suddivisione Gruppi OK\n");
 
+    printf("[CorsoMaster]          Studenti totali %d - #tipologia gruppi %d - max rifiuti %d - simtime %d\n", POP_SIZE, nGruppi, MAX_REJECT, SIM_TIME);
+
     // gestione segnale ctrl +c 
     end.sa_handler=handle_alarm;
     end.sa_flags=0;
@@ -96,7 +100,7 @@ int main(int argc, char **argcv) {
     }
     project_data=shmat(shr_mem, NULL, 0);
     project_data->cur_idx=0;
-    printf("[CorsoMaster] Memoria Condivisa current index: %ld\n",project_data->cur_idx);
+    
      
     printf("[CorsoMaster] Step 2 - Imposto la coda di messaggi\n");
      
@@ -192,7 +196,9 @@ int main(int argc, char **argcv) {
     msgctl(msg_master, IPC_RMID, NULL);
     semctl(sem_init, 2, IPC_RMID, 0);
 
-    printf("Vuoi stampare il voto medio dei due esami? [Y/N]");
+
+
+    printf("Vuoi stampare ilnumero studenti per ogni voto e il voto medio dei due esami? [Y/N]");
     scanf("%c", &printMedia);
 
     switch (toupper(printMedia)){
@@ -208,8 +214,19 @@ int main(int argc, char **argcv) {
             mediaAdE=(float)sommaAdE/(float)POP_SIZE;
             mediaSO=(float)sommaSO/(float)POP_SIZE;
 
-            printf("Voto medio Architettura degli eleboratori %2.2f\n  Voto medio Sistemi Operativi %2.2f\n", 
-            mediaAdE, mediaSO);
+            printf("Numero studenti per voto nell'esame di Architettura di Elaboratori e voto medio complessivo\n");
+
+            numstudentipervotoAdE ();
+            printf("\n");
+
+            printf("Voto medio Architettura degli eleboratori %2.2f\n\n", mediaAdE);
+
+            printf("Numero studenti per voto nell'esame di Sistemi Operativi e voto medio complessivo\n\n");
+
+            numstudentipervotoSO ();
+            printf("\n");
+
+            printf("Voto medio Sistemi Operativi %2.2f\n\n",  mediaSO);
             
             printf("Fine della simulazione");
             shmctl(shr_mem,IPC_RMID, NULL);
@@ -217,7 +234,7 @@ int main(int argc, char **argcv) {
             break;
             
         case 'N':
-            printf("Fine della simulazione");
+            printf("Fine della simulazione\n");
             shmctl(shr_mem,IPC_RMID, NULL);
             exit(0);
             break;
@@ -313,9 +330,9 @@ void handle_alarm (int signal){
         printf("[CorsoMaster] ------------------------------- Fine Cronometro\n");
     
         for (i=0; i<POP_SIZE; i++){
-
+            #ifdef DEBUG
             printf("[CorsoMaster] inoltro fine alarm a %d\n",children[i]);
-
+            #endif
             kill (children[i], SIGALRM);
         }
 
@@ -439,3 +456,62 @@ int conta_membrigruppo (int nome_g){
      }
      return max;
  }
+
+ void numstudentipervotoAdE(){
+     int count=0;
+     int k=0;
+     int i=0;
+    
+    printf ("Distribuzione voti Architetture di Elaboratori\n\n");
+    printf ("# studenti | voto\n");
+    printf ("-----------|-----\n");
+        
+    //lo faccio partire da 0 nel malaugurato caso in cui uno studente non abbia chiuso il gruppo
+     for (k=0; k<=30; k++){
+        for(i=0; i<POP_SIZE; i++){
+            if (votiFinali[i].VotoAdE==k){
+                count++;
+            }
+        }
+        printf ("%10d |%5d\n", count, k);
+        
+        if(k==0) {
+            //allora lo pongo uguale a 14 in modo da far testare il 15 al prossimo ciclo del for
+            k=14;
+
+        }
+        count=0;
+    }
+    printf ("-----------|-----\n");
+    
+ }
+
+void numstudentipervotoSO(){
+     int count=0;
+     int k=0;
+     int i=0;
+    
+    printf ("Distribuzione voti Sistemi Operativi\n\n");
+    printf ("# studenti | voto\n");
+    printf ("-----------|-----\n");
+        
+    //lo faccio partire da 0 nel malaugurato caso in cui uno studente non abbia chiuso il gruppo
+     for (k=0; k<=30; k++){
+        for(i=0; i<POP_SIZE; i++){
+            if (votiFinali[i].VotoSO==k){
+                count++;
+            }
+        }
+        printf ("%10d |%5d\n", count, k);
+        
+        if(k==0) {
+            //allora lo pongo uguale a 14 in modo da far testare il 15 al prossimo ciclo del for
+            k=14;
+
+        }
+        count=0;
+    }
+    printf ("-----------|-----\n");
+    
+ }
+ 

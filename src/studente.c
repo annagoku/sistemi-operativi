@@ -40,7 +40,7 @@ int main(int argc, char **argcv) {
     pid_t pid;
 
 
-    received.mtype=studente.matricola;
+    
     
     pid = getpid();
     if(argcv != NULL) {
@@ -53,6 +53,7 @@ int main(int argc, char **argcv) {
     
     //per comodita' imposto la matricola uguale al pid
     studente.matricola = pid;
+    received.mtype=studente.matricola;
 
     //stabilisco il gruppo dello studente in base alla matricola
     if(studente.matricola%2 == 0) {
@@ -99,9 +100,12 @@ int main(int argc, char **argcv) {
     
     // il voto lo prendo come uniforme tra 18 e 30
     studente.voto_AdE = 18 + rand() % (30 -18 +1);
+    #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] Voto %d, pref. gruppo %d, lab. %c\n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, studente.nof_elems, studente.glab);
-
+    
     printf("[Studente %d - lab %c - i:%d] Scrivo in mem condivisa \n",studente.matricola, studente.glab, shr_pos);
+    #endif
+    
     project_data->vec[shr_pos].matricola=studente.matricola;
     project_data->vec[shr_pos].voto_AdE=studente.voto_AdE;
     project_data->vec[shr_pos].glab=studente.glab;
@@ -115,14 +119,20 @@ int main(int argc, char **argcv) {
     //Sblocco semaforo presenza
     presenza.sem_num=INIT_READY;
     presenza.sem_op=1;
+    #ifdef DEBUG
     printf("[Studente %d] Sblocco semaforo presenza \n",studente.matricola);
+    #endif
+    
     semop(sem_init, &presenza, 1);
 
     //UNLOCK
     w_dati.sem_flg=0;
     w_dati.sem_num=SHR_SCRIPT;
     w_dati.sem_op=1;
+    #ifdef DEBUG
     printf("[Studente %d] Sblocco semaforo \n",studente.matricola);
+    #endif
+
     semop(sem_init, &w_dati, 1);
 
     //Gestione del risveglio
@@ -140,12 +150,15 @@ int main(int argc, char **argcv) {
     sigaction (SIGUSR2, &ends, NULL);  
     
     // Metto in pausa in attesa del segnale di inizio di formazione gruppi
+    #ifdef DEBUG
     printf("[Studente %d] Metto in pausa\n",studente.matricola);
-    
+    #endif
+
     pause();
 
+    #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] Risveglio\n",studente.matricola, studente.glab, shr_pos);
-
+    #endif
     //Gestione del segnale di ALARM
     ends.sa_handler=sigHandler;
     ends.sa_flags=0;
@@ -158,7 +171,9 @@ int main(int argc, char **argcv) {
     if (studente.voto_AdE>=18 && studente.voto_AdE<=21){
         while (exitStrategy== 0 && flagSignal==0){
             //gli studenti con voti bassi si mettono solo in ricezione inviti
+            #ifdef DEBUG
             printf("[Studente %d - lab %c - i:%d] (%d) mi metto in ricezione (stato %c) \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, project_data->vec[shr_pos].stato_s);
+            #endif
 
             if(msgrcv(msg_id, &received, sizeof(received)-sizeof(long), studente.matricola, 0)==-1){
                 if(errno==EINTR){ // interruzione da segnale
@@ -167,7 +182,9 @@ int main(int argc, char **argcv) {
                         // allora è stato ricevuto un preAlarm
                         // se sono ancora libero decido di chiudere il gruppo da solo
                         if(project_data->vec[shr_pos].stato_s=='F') {
+                            #ifdef DEBUG
                             printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
+                            #endif
                             project_data->vec[shr_pos].stato_g='C';
                             project_data->vec[shr_pos].stato_s='A';
                             project_data->vec[shr_pos].tipo_componente='L';
@@ -178,7 +195,10 @@ int main(int argc, char **argcv) {
 
                     }
                     else {
+                        #ifdef DEBUG
                         printf("[Studente %d - lab %c - i:%d] Errore nella ricezione dei messaggi \n", studente.matricola, studente.glab, shr_pos);
+                        #endif
+
                         exitStrategy =1;
                         break;
                     }
@@ -197,14 +217,18 @@ int main(int argc, char **argcv) {
                                     // allora è stato ricevuto un preAlarm
                                     // devo riprovare a rifiutare  il messaggio
                                     if(rejectInvite(shr_pos, &studente, &received)==-1){
+                                        #ifdef DEBUG
                                         printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta \n", studente.matricola, studente.glab, shr_pos);
+                                        #endif
                                         exitStrategy =1;
                                         break;    
                                     }
 
                                 }
                                 else {
+                                    #ifdef DEBUG
                                     printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta \n", studente.matricola, studente.glab, shr_pos);
+                                    #endif
                                     exitStrategy =1;
                                     break;
                                 }
@@ -220,14 +244,19 @@ int main(int argc, char **argcv) {
                                 if(acceptInvite(shr_pos, &studente, &received)==-1){
                                     // se sono qui allora è successo un nuovo errore 
                                     // devo uscire
+                                    #ifdef DEBUG
                                     printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
+                                    #endif
+
                                     break;
                                 }        
                             }
                             else if(flagSignal==1 && errno==EINTR){ // interruzione da segnale
                                 //fine del SIM_TIME
                                 exitStrategy =1;
+                                #ifdef DEBUG
                                 printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
+                                #endif
                                 break;
                             }
                             
@@ -236,7 +265,9 @@ int main(int argc, char **argcv) {
                     
                 }
                 else {
+                    #ifdef DEBUG
                     printf("[Studente %d - lab %c - i:%d] (%d) messaggio non previsto %d %ld\n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, received.aim,  received.mitt);
+                    #endif
                     exitStrategy = 1;
                     break;
                 }
@@ -251,8 +282,10 @@ int main(int argc, char **argcv) {
 
 
             if(preAlarm == 1 && project_data->vec[shr_pos].stato_s=='F') {
+                #ifdef DEBUG
                 printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
-                            
+                #endif
+
                 project_data->vec[shr_pos].stato_g='C';
                 project_data->vec[shr_pos].stato_s='A';
                 project_data->vec[shr_pos].tipo_componente='L';
@@ -269,7 +302,9 @@ int main(int argc, char **argcv) {
                         // allora è stato ricevuto un preAlarm
                         // se sono ancora libero decido di chiudere il gruppo da solo
                         if(project_data->vec[shr_pos].stato_s=='F') {
+                            #ifdef DEBUG
                             printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
+                            #endif
                             project_data->vec[shr_pos].stato_g='C';
                             project_data->vec[shr_pos].stato_s='A';
                             project_data->vec[shr_pos].tipo_componente='L';
@@ -279,8 +314,9 @@ int main(int argc, char **argcv) {
                     }
                     else {
                         //fine del SIM_TIME
+                        #ifdef DEBUG
                         printf("[Studente %d - lab %c - i:%d] Errore nella ricezione dei messaggi \n", studente.matricola, studente.glab, shr_pos);
-                    
+                        #endif                
                         exitStrategy =1;
                         break;
                     }
@@ -288,8 +324,9 @@ int main(int argc, char **argcv) {
                 else if (errno==ENOMSG){
                     if( project_data->vec[shr_pos].stato_s=='F') {
                         if(preAlarm == 1 && project_data->vec[shr_pos].stato_s=='F') {
+                            #ifdef DEBUG
                             printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
-                                        
+                            #endif                                    
                             project_data->vec[shr_pos].stato_g='C';
                             project_data->vec[shr_pos].stato_s='A';
                             project_data->vec[shr_pos].tipo_componente='L';
@@ -308,13 +345,16 @@ int main(int argc, char **argcv) {
                     }
                 }
                 else{
+                    //deve essere successi un errore
                     perror("msgrcv");
                     
                 }
                 
             }
             else {
+                #ifdef DEBUG
                 printf("[Studente %d - lab %c - i:%d] (%d) ricevuto invito da %ld, tipo %c\n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, received.mitt, received.aim);
+                #endif
                 if (project_data->vec[shr_pos].stato_s!='F'){
                     //rifiuto messaggio
                     if(rejectInvite(shr_pos, &studente, &received)==-1){
@@ -340,38 +380,9 @@ int main(int argc, char **argcv) {
                     }
                 }
                 else {
-                    if(received.aim=='I' /*&& received.voto_AdE>=studente.voto_AdE*/ && received.numCGr==studente.nof_elems) {
-                        //accetto il messaggio
-                        if(acceptInvite(shr_pos, &studente, &received)==-1){
-                            if(flagSignal == 0 && preAlarm &&  errno==EINTR) {
-                                // allora è stato ricevuto il preAlarm
-                                // devo ritentare di accettare il messaggio
-                                if(acceptInvite(shr_pos, &studente, &received)==-1){
-                                    // se sono qui allora è successo un nuovo errore 
-                                    // devo uscire
-                                    printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
-                                    break;
-                                }        
-                            }
-                            else if(flagSignal==1 && errno==EINTR){ // interruzione da segnale
-                                //fine del SIM_TIME
-                                exitStrategy =1;
-                                printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
-                                break;
-                            }
-                
-                        }
-                    } 
-                    else {
-                        if(preAlarm == 1 && project_data->vec[shr_pos].stato_s=='F') {
-                            printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
-                                        
-                            project_data->vec[shr_pos].stato_g='C';
-                            project_data->vec[shr_pos].stato_s='A';
-                            project_data->vec[shr_pos].tipo_componente='L';
-                            project_data->vec[shr_pos].nome_gruppo=studente.matricola;
-                        }
-                        else if(count_rjt<MAX_REJECT) {
+                    if(received.aim=='I') {
+                        if(count_rjt<MAX_REJECT && received.numCGr!=studente.nof_elems) {
+                            //provo a vedere se trovo un gruppo migliore
                             count_rjt++;
                             //rifiuto il messaggio
                             //printf("[Studente %d - lab %c - i:%d] (%d) rifiuto l'invito di %ld \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, received.mitt);
@@ -404,7 +415,7 @@ int main(int argc, char **argcv) {
 
                                 fate = 1 + rand() % 2;
 
-                                if(fate==1 && studente.voto_AdE >= 24) {
+                                if(fate==1 && studente.voto_AdE >= 24 ) {
                                     if(inviteStudents(shr_pos, &studente, 22, 27, nof_invites)==-1) {
                                         break;
                                     }
@@ -413,27 +424,42 @@ int main(int argc, char **argcv) {
 
                         }
                         else {
-                            printf("[Studente %d - lab %c - i:%d] (%d) raggiunto num max rifiuti... accetto forzato\n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
-                
                             //accetto il messaggio
                             if(acceptInvite(shr_pos, &studente, &received)==-1){
-                                if(errno==EINTR){ // interruzione da segnale
-                                    if(flagSignal==1 ){ // interruzione da segnale
-                                        //fine del SIM_TIME
-                                        exitStrategy =1;
+                                if(flagSignal == 0 && preAlarm &&  errno==EINTR) {
+                                    // allora è stato ricevuto il preAlarm
+                                    // devo ritentare di accettare il messaggio
+                                    if(acceptInvite(shr_pos, &studente, &received)==-1){
+                                        // se sono qui allora è successo un nuovo errore 
+                                        // devo uscire
+                                        printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
                                         break;
-                                    }
-                                    else if(preAlarm == 1) {
-                                        // riprovo a mandare l'accettazione
-                                        if(acceptInvite(shr_pos, &studente, &received)==-1){
-                                            exitStrategy =1;
-                                            break;
-                                        }
-                                    }
+                                    }        
                                 }
-                                
+                                else if(flagSignal==1 && errno==EINTR){ // interruzione da segnale
+                                    //fine del SIM_TIME
+                                    exitStrategy =1;
+                                    #ifdef DEBUG
+                                    printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta\n", studente.matricola, studente.glab, shr_pos);
+                                    #endif
+                                    break;
+                                }
+                    
                             }
                         }
+                        
+                        
+                    } 
+                    else {
+                        if(preAlarm == 1 && project_data->vec[shr_pos].stato_s=='F') {
+                            printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
+                                        
+                            project_data->vec[shr_pos].stato_g='C';
+                            project_data->vec[shr_pos].stato_s='A';
+                            project_data->vec[shr_pos].tipo_componente='L';
+                            project_data->vec[shr_pos].nome_gruppo=studente.matricola;
+                        }
+                        
                     }       
                 }
             }
@@ -502,17 +528,20 @@ int main(int argc, char **argcv) {
         
     } 
     else{
+        
         printf("[Studente %d - lab %c - i:%d] voto di AdE %d  voto Sistemi Operativi %d\n", studente.matricola, studente.glab, shr_pos, votoFinale.VotoAdE, votoFinale.VotoSO);
+        
     }
-    
+    #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] exit 0\n",studente.matricola, studente.glab, shr_pos);
+    #endif
     exit(0);
 }
 
 // gestione segnali 
 void sigHandler (int sign){
     if(sign==SIGUSR1) {
-        printf("inizio");
+        //risveglio
     }
     else if (sign == SIGUSR2) {
         preAlarm=1;
@@ -533,105 +562,111 @@ int inviteStudents (int shr_pos, struct studente_t *studente, int vmin, int vmax
     int count_elem=1;
     int count_inv=0;
     int found = 0;
-    int fate = 1;
+    
 
     msginvite_t invito;
     msginvite_t received;
     
 
-    //decido di propormi come leader
-    printf("[Studente %d - lab %c - i:%d] (%d) Si propone come leader \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE);
     project_data->vec[shr_pos].nome_gruppo=studente->matricola;
     project_data->vec[shr_pos].tipo_componente='L';
     project_data->vec[shr_pos].stato_s='A';
 
-    for (j=0; j<POP_SIZE && count_elem<=studente->nof_elems && count_inv<nof_invites && fate == 1 && preAlarm == 0; j++){
+    
+    //decido di propormi come leader
+    #ifdef DEBUG
+    printf("[Studente %d - lab %c - i:%d] (%d) Si propone come leader \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE);
+    #endif
+    
+    for (j=0; j<POP_SIZE && count_elem<=studente->nof_elems && count_inv<nof_invites  && preAlarm == 0; j++){
         if( project_data->vec[j].stato_s=='F' && 
             project_data->vec[j].glab==studente->glab && 
             project_data->vec[j].voto_AdE>=vmin &&  
-            project_data->vec[j].voto_AdE<=vmax && 
-            ((j<POP_SIZE/2 && project_data->vec[j].nof_elems==studente->nof_elems)||j>=POP_SIZE/2)){
+            project_data->vec[j].voto_AdE<=vmax){ 
 
-            invito.mtype=project_data->vec[j].matricola;
-            invito.aim='I';
-            invito.mitt=studente->matricola;
-            invito.voto_AdE=studente->voto_AdE;
-            invito.numCGr=studente->nof_elems;
+            if((studente->nof_elems >=27 && project_data->vec[j].nof_elems==studente->nof_elems) || 
+               (studente->nof_elems <27 && ((j<POP_SIZE/2 && project_data->vec[j].nof_elems==studente->nof_elems)||j>=POP_SIZE/2) )) {//rilassamento della condizione numerosita' dopo POP_SIZE/2
+                invito.mtype=project_data->vec[j].matricola;
+                invito.aim='I';
+                invito.mitt=studente->matricola;
+                invito.voto_AdE=studente->voto_AdE;
+                invito.numCGr=studente->nof_elems;
 
-            printf("[Studente %d - lab %c - i:%d] (%d) Mando invito a %ld \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, invito.mtype);
-    
+                #ifdef DEBUG
+                printf("[Studente %d - lab %c - i:%d] (%d) Mando invito a %ld \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, invito.mtype);
+                #endif
 
-            if(msgsnd (msg_id, &invito, sizeof(invito)-sizeof(long),0)==-1){
-                    printf("[Studente %d - lab %c - i:%d] Errore nell'invio del messaggio\n", studente->matricola, studente->glab, shr_pos);
-                    return -1;    
-            }
-            else{
-                count_inv++;
-            }
-            printf("[Studente %d - lab %c - i:%d] (%d) count inviti %d \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE,count_inv);
-            printf("[Studente %d - lab %c - i:%d] (%d) Mi metto in ricezione (per accettazione) \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE);
-            found = 0;
+                if(msgsnd (msg_id, &invito, sizeof(invito)-sizeof(long),0)==-1){
+                        printf("[Studente %d - lab %c - i:%d] Errore nell'invio del messaggio\n", studente->matricola, studente->glab, shr_pos);
+                        return -1;    
+                }
+                else{
+                    count_inv++;
+                }
+                #ifdef DEBUG
+                printf("[Studente %d - lab %c - i:%d] (%d) count inviti %d \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE,count_inv);
+                printf("[Studente %d - lab %c - i:%d] (%d) Mi metto in ricezione (per accettazione) \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE);
+                #endif
+                found = 0;
 
-            while (found == 0) {
-                if(msgrcv(msg_id, &received, sizeof(invito)-sizeof(long), studente->matricola, 0)==-1){
-                    //controllo per quale motivo mi sono bloccato perché se è per un segnale devo controllare che non sia il prealarm
-                    if(errno==EINTR){ // interruzione da segnale
-                        //fine del SIM_TIME
-                        if(flagSignal == 0 && preAlarm == 1) {
-                            // allora è stato ricevuto un preAlarm
-                            // devo riprovare ad aspettare che arrivi il messaggio di riposta ma se ricevo un rifiuto
-                            // chiudo comunque il gruppo
-                            printf("[Studente %d - lab %c - i:%d] Errore nella ricezione perché ho ricevuto un preAlarm -> continuo a cercare di ricevere feedback dell'invito\n", studente->matricola, studente->glab, shr_pos);
-                            
+                while (found == 0) {
+                    if(msgrcv(msg_id, &received, sizeof(invito)-sizeof(long), studente->matricola, 0)==-1){
+                        //controllo per quale motivo mi sono bloccato perché se è per un segnale devo controllare che non sia il prealarm
+                        if(errno==EINTR){ // interruzione da segnale
+                            //fine del SIM_TIME
+                            if(flagSignal == 0 && preAlarm == 1) {
+                                // allora è stato ricevuto un preAlarm
+                                // devo riprovare ad aspettare che arrivi il messaggio di riposta ma se ricevo un rifiuto
+                                // chiudo comunque il gruppo
+                                #ifdef DEBUG
+                                printf("[Studente %d - lab %c - i:%d] Errore nella ricezione perché ho ricevuto un preAlarm -> continuo a cercare di ricevere feedback dell'invito\n", studente->matricola, studente->glab, shr_pos);
+                                #endif
 
+                            }
+                            else {
+                                printf("[Studente %d - lab %c - i:%d] Errore nella ricezione del messaggio\n", studente->matricola, studente->glab, shr_pos);
+                                return -1;
+                            }
                         }
                         else {
                             printf("[Studente %d - lab %c - i:%d] Errore nella ricezione del messaggio\n", studente->matricola, studente->glab, shr_pos);
-                            return -1;
-                        }
+                            return -1; 
+                        }    
                     }
-                    else {
-                        printf("[Studente %d - lab %c - i:%d] Errore nella ricezione del messaggio\n", studente->matricola, studente->glab, shr_pos);
-                        return -1; 
-                    }    
-                }
-                else if(received.aim=='A'){
-                    printf("[Studente %d - lab %c - i:%d] (%d) il mio invito è stato accettato da %ld \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, received.mitt);
-                    found = 1;
-                    count_elem++; 
-                    /*
-                    if(preAlarm == 0) {
-                        // provo a tirare una monetina per decidere se chiudere il gruppo prima di aver raggiunto
-                        // l'obiettivo o meno
+                    else if(received.aim=='A'){
+                        #ifdef DEBUG
+                        printf("[Studente %d - lab %c - i:%d] (%d) il mio invito è stato accettato da %ld \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, received.mitt);
+                        #endif
+                        found = 1;
+                        count_elem++; 
+                        
+                    }
+                    else if(received.aim=='R'){
+                        #ifdef DEBUG
+                        printf("[Studente %d - lab %c - i:%d] Il mio invito è stato rifiutato  da %ld, tipo %c \n", studente->matricola, studente->glab, shr_pos, received.mitt, received.aim);
+                        #endif
+                        found =1;
+                    }
+                    else if(received.aim=='I'){
+                        #ifdef DEBUG
+                        printf("[Studente %d - lab %c - i:%d] Ricevuto invito da %ld, tipo %d \n", studente->matricola, studente->glab, shr_pos, received.mitt, received.aim);
+                        #endif
 
-                        fate = 1 + rand() % 3; // viene controllato nell'if
-                        if(fate == 3) 
-                            printf("[Studente %d - lab %c - i:%d] Chiudo il gruppo in modo non ottimale \n", studente->matricola, studente->glab, shr_pos);
-                        else {
-                            fate =1;
+                        if(rejectInvite(shr_pos, studente, &received)==-1) {
+                            printf("[Studente %d - lab %c - i:%d] Errore nel rifiuto del messaggio di %ld \n", studente->matricola, studente->glab, shr_pos, received.mitt);
+                            
                         }
-                    }*/
-                    
-                }
-                else if(received.aim=='R'){
-                    printf("[Studente %d - lab %c - i:%d] Il mio invito è stato rifiutato  da %ld, tipo %c \n", studente->matricola, studente->glab, shr_pos, received.mitt, received.aim);
-                        
-                    found =1;
-                }
-                else if(received.aim=='I'){
-                    printf("[Studente %d - lab %c - i:%d] Messaggio non previsto da %ld, tipo %d \n", studente->matricola, studente->glab, shr_pos, received.mitt, received.aim);
-                        
-                    if(rejectInvite(shr_pos, studente, &received)==-1) {
-                        printf("[Studente %d - lab %c - i:%d] Errore nel rifiuto del messaggio di %ld \n", studente->matricola, studente->glab, shr_pos, received.mitt);
-                        
                     }
                 }
             }
+
         
         }        
     } 
     project_data->vec[shr_pos].stato_g='C';
+    #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] (%d) chiudo il gruppo \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE);
+    #endif
     return 0;
 }
 
@@ -646,8 +681,9 @@ int acceptInvite(int shr_pos, struct studente_t *studente, msginvite_t *rec) {
     answer.mtype=rec->mitt;
     answer.mitt=studente->matricola;
     answer.aim='A';
+    #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] (%d) accetto invito di %ld \n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, rec->mitt);
-    
+    #endif
     return msgsnd(msg_id, &answer, sizeof(answer)-sizeof(long),0);
 }
 
@@ -658,13 +694,15 @@ int rejectInvite(int shr_pos, struct studente_t *studente, msginvite_t *rec) {
     answer.mitt=studente->matricola;
     answer.aim='R';
     
+    #ifdef DEBUG
     if(project_data->vec[shr_pos].stato_s=='F') {
         printf("[Studente %d - lab %c - i:%d] (%d) rifiuto invito di %ld (motivo NON MI PIACE)\n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, rec->mitt);
+    
     }
     else {
         printf("[Studente %d - lab %c - i:%d] (%d) rifiuto invito di %ld (motivo SONO IN ALTRO GRUPPO)\n", studente->matricola, studente->glab, shr_pos, studente->voto_AdE, rec->mitt);
     }
-    
+    #endif    
                     
     return msgsnd(msg_id, &answer, sizeof(answer)-sizeof(long),0);
 }

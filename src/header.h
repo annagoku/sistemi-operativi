@@ -12,10 +12,11 @@
 #include <sys/msg.h>
 #include <ctype.h>
 
+//#define DEBUG 1 //activate debug
 
 #define POP_SIZE  300 // num studenti
 #define MAX_REJECT 2 // num max rifiuti
-#define SIM_TIME 20 // tempo di simulazione
+#define SIM_TIME 15 // tempo di simulazione
 
 //codici identificativi IPC
 #define SEM_ID  70500
