@@ -12,7 +12,6 @@
 #include <sys/msg.h>
 #include <ctype.h>
 
-//#define DEBUG 1 //activate debug
 
 #define POP_SIZE  300 // num studenti
 #define MAX_REJECT 2 // num max rifiuti
@@ -40,9 +39,9 @@ typedef struct gruppo {
 typedef struct msginvite {
     long mtype; // sempre PID/matr del destinatario
     char aim; // I=invito R=rifiuto A=accettazione
-    long mitt; //matr mittente msg
+    long mitt; //PID/matr mittente msg
     int voto_AdE;
-    int numCGr; // numero componenti gruppo              
+    int numCGr; // numero componenti gruppo desiderato dal mittente            
 } msginvite_t;
 
 typedef struct msgFromMaster {
@@ -51,20 +50,21 @@ typedef struct msgFromMaster {
     int VotoAdE;
 } msgFromMaster_t;
 
-//sefinizione del typedef del vettore della memoria condivisa
+//sefinizione del typedef degli elementi del vettore della memoria condivisa
 typedef struct info_shr {
     int matricola;
     int voto_AdE;
-    char glab;
+    char glab; //turno di laboratorio T4 per matr pari--T3 matr dispari
     char stato_s; //stato studente  F=libero, A=assigned
     char stato_g; //stato gruppo C=group closed, O=group open
-    int nome_gruppo; // identificativo del gruppo finale di appartenenza
+    int nome_gruppo; // identificativo del gruppo finale di appartenenza uguale al PID/matr del leader
     char tipo_componente; //leader Vs follower L=leader, F=Follower
-    int nof_elems;
+    int nof_elems;// numero elementi desiderati per il proprio gruppo
 } info_shr_t;
 
-struct shared_data {       // struct della memoria condivisa
-    unsigned long cur_idx;
+// struct della memoria condivisa
+struct shared_data {       
+    unsigned long cur_idx; //contatore di posizione nel vettore della memoria condivisa
     info_shr_t vec[POP_SIZE];
 };
 
