@@ -206,7 +206,7 @@ int main(int argc, char **argcv) {
             }
             else{
                 if (received.aim=='I'){
-                    
+
                     if (project_data->vec[shr_pos].stato_s!='F'){
                         //rifiuto messaggio
                         if(rejectInvite(shr_pos, &studente, &received)==-1){
@@ -523,12 +523,12 @@ int main(int argc, char **argcv) {
 
     
     if(msgrcv(msg_master, &votoFinale, sizeof(votoFinale)-sizeof(long), studente.matricola, 0)==-1){
-        printf("[Studente %d - lab %c - i:%d] Errore nella ricezione del voto finale \n", studente.matricola, studente.glab, shr_pos);
+        printf("[Studente %d - lab %c - i:%4d] Errore nella ricezione del voto finale \n", studente.matricola, studente.glab, shr_pos);
         
     } 
     else{
         
-        printf("[Studente %d - lab %c - i:%d] voto di AdE %d  voto Sistemi Operativi %d\n", studente.matricola, studente.glab, shr_pos, votoFinale.VotoAdE, votoFinale.VotoSO);
+        printf("[Studente %d - lab %c - i:%4d] Voto di AdE %2d Voto Sistemi Operativi %2d\n", studente.matricola, studente.glab, shr_pos, votoFinale.VotoAdE, votoFinale.VotoSO);
         
     }
     #ifdef DEBUG
