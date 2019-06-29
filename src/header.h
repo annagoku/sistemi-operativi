@@ -26,15 +26,6 @@
 #define INIT_READY 0 //semaforo per verificare la fine dell'inizializzazione dei figli
 #define SHR_SCRIPT 1 //semaforo per scrittura su memoria condivisa
 
-
-//Struttura dei gruppi
-typedef struct gruppo {
-    int nof_elems;
-    float prob;
-    float min, max;
-    char nof_elems_str[2];
-} gruppo_t;
-
 //Struttura dei msg inviati
 typedef struct msginvite {
     long mtype; // sempre PID/matr del destinatario

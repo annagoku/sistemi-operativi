@@ -23,7 +23,7 @@ void showMenu(){
     switch(input){
         case 'g':
             execve("./corsoMaster",(char *[]){ "./corsoMaster ", NULL, NULL }, NULL);
-            
+            //execve("./corsoMaster",NULL, NULL);
         case '?':
             system("clear");
             showGuide();
@@ -50,5 +50,6 @@ void showGuide() {
     printf("Author: Annalisa Sabatelli\tMatricola: 866879\n\nAnno Accademico: 2018-2019" );
     printf("\n\nPremi un tasto e invio per tornare alla schermata iniziale\n");
     scanf(" %c",&input);
+    system("clear");
     showMenu();
 }

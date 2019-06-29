@@ -207,7 +207,6 @@ int main(int argc, char **argcv) {
             else{
                 if (received.aim=='I'){
                     
-
                     if (project_data->vec[shr_pos].stato_s!='F'){
                         //rifiuto messaggio
                         if(rejectInvite(shr_pos, &studente, &received)==-1){

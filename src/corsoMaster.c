@@ -1,18 +1,24 @@
 #include "header.h"
 
-int     letturaRighe();
-void    letturaFile(gruppo_t *gruppi);
-void    suddividiGruppi(char **sudd, gruppo_t *gruppi, int nGruppi);
+// --------------------- Definizione prototipi di funzione
+
+void    letturaFile();
 void    calcoloVotiFinali();
 int     conta_membrigruppo (int nome_g);
 int     trova_maxvoto (int nome_g);
 int     trova_leader (int name_g);
 void    numstudentipervotoAdE();
 void    numstudentipervotoSO();
+void    reset_sem();
+void    fill_semshr();
+void    handle_alarm (int signal);
 
+
+// --------------------- Variabili Globali
 
 pid_t   children[POP_SIZE];
 msgFromMaster_t votiFinali[POP_SIZE];
+char* suddivisioneGruppi[POP_SIZE];
 
 int sem_init; // identificatore del vettore di semafori
 int shr_mem; //identificatore della memoria condivisa
@@ -23,23 +29,17 @@ char nof_invites[3];
 struct shared_data *project_data;
 struct sembuf shr;
 
-void reset_sem();
-void fill_semshr();
-void handle_alarm (int signal);
 
-int main(int argc, char **argcv) {
-    char buffer[2];
-    
-    char* suddivisioneGruppi[POP_SIZE];
+
+int main() {
+
     pid_t pid, child;
     int n = POP_SIZE;
     int status;
     int i = 0;
-    float check=0;
-    char str[2];
-    gruppo_t *gruppi;
-    int nGruppi;
-    struct sembuf presenza; //struttura dati di sistema per i semafori 
+    
+    struct sembuf presenza; //struttura dati di sistema per i semafori
+
     char printMedia;
     float mediaAdE=0;
     int sommaAdE=0;
@@ -50,30 +50,12 @@ int main(int argc, char **argcv) {
     sigset_t  mymask;
 
    
-    nGruppi = letturaRighe();
+    //----------------------------Lettura file di configurazione
+    letturaFile(); 
     
-    gruppi = (gruppo_t*) malloc(i*sizeof(gruppo_t));
-
-    letturaFile(gruppi);
-    
-
-    //printf("sizeof(gruppi)  %d \n", nGruppi);
-
-    for(i=0; i< nGruppi; i++) {
-        //printf("Gruppo  %d - prob %f\n", gruppi[i].nof_elems, gruppi[i].prob);
-        check = check + gruppi[i].prob;
-    }
-    if(check > 1) {
-        //printf("La percentuale dei gruppi non è corretta\n");
-        exit(EXIT_FAILURE);
-    }
-    suddividiGruppi(suddivisioneGruppi, gruppi, nGruppi);
-    /*for(i=0; i<POP_SIZE; i++) {
-        printf("Studente  %d - gruppo %s\n", i, suddivisioneGruppi[i]);
-    }*/
     printf("[CorsoMaster] Step 0 - Lettura file OK, Suddivisione Gruppi OK\n");
 
-    printf("[CorsoMaster]          Studenti totali %d - #tipologia gruppi %d - max rifiuti %d - simtime %d\n", POP_SIZE, nGruppi, MAX_REJECT, SIM_TIME);
+    printf("[CorsoMaster]          Studenti totali %d - max rifiuti %d - simtime %d\n", POP_SIZE, MAX_REJECT, SIM_TIME);
 
     // gestione segnale ctrl +c 
     end.sa_handler=handle_alarm;
@@ -87,12 +69,13 @@ int main(int argc, char **argcv) {
         printf("[CorsoMaster] Errore nella creazione del vettore di semafori \n ");
         exit(-1);
     }
-    printf("[CorsoMaster] Step 1 - creazione vettore di semafori OK\n");
+    printf("[CorsoMaster] Step 1 - Creazione vettore di semafori OK\n");
     reset_sem();
-    fill_semshr();
+   
     
 
     //----------------------------impostazione memoria condivisa
+    fill_semshr();
     if((shr_mem=shmget(SHR_ID, POP_SIZE*sizeof(info_shr_t), IPC_CREAT|0666))<0 ){
         printf("[CorsoMaster] Errore nella creazione della memoria condivisa \n ");
         perror("shmget");
@@ -105,17 +88,14 @@ int main(int argc, char **argcv) {
     printf("[CorsoMaster] Step 2 - Imposto la coda di messaggi\n");
      
     //----------------------------impostazione coda di messaggi
-
-
     if((msg_id=msgget(MSG_ID, IPC_CREAT | IPC_EXCL | 0600))==-1) {
         perror("msgget");
         printf("[CorsoMaster] Errore nella creazione della coda di messaggi \n ");
         printf("[CorsoMaster] errno=%d", errno);
         exit(-1);
     }
-    //----------------------------impostazione coda di messaggi master finale
 
-
+    //----------------------------impostazione coda di messaggi master finale per comunicazione voto
     if((msg_master=msgget(MSG_MASTER, IPC_CREAT | IPC_EXCL | 0600))==-1) {
         perror("msgget");
         printf("[CorsoMaster] Errore nella creazione della coda di messaggi voto finale \n ");
@@ -126,7 +106,6 @@ int main(int argc, char **argcv) {
 
     printf("[CorsoMaster] Step 3 - Genero i processi figli (studenti)\n");
 
-    i=0;
     while(i < POP_SIZE) {
         child = fork();
         switch (child)
@@ -156,8 +135,7 @@ int main(int argc, char **argcv) {
     presenza.sem_op=-POP_SIZE;
     semop(sem_init, &presenza, 1);
 
-    printf("[CorsoMaster] Step 4 ------------------------------- Partenza cronometro\n");
-    //sleep(1);
+    printf("[CorsoMaster] ------------------------------- Partenza cronometro\n");
     
     //Mando un segnale per risvegliare gli studenti
     for(i=0; i< POP_SIZE; i++) {
@@ -174,18 +152,19 @@ int main(int argc, char **argcv) {
     alarm(SIM_TIME); 
     //Preallarme
     sleep(SIM_TIME-(SIM_TIME*25/100));
-    printf("[CorsoMaster]  Mando preallarme\n");
+    printf("[CorsoMaster] ------------------------------- Mando preallarme\n");
     for(i=0; i< POP_SIZE; i++) {
         kill(children[i], SIGUSR2);
     }
 
     while(n > 0){
         pid = wait(&status);
-        /*if ( WIFEXITED(status) ){
-            
-            printf("Processo %d ha finito %d\n", pid, WEXITSTATUS(status));
 
-        }*/
+        #ifdef DEBUG
+        if ( WIFEXITED(status) ){
+            printf("Processo %d ha finito %d\n", pid, WEXITSTATUS(status));
+        }
+        #endif
         n--;
     }
     
@@ -209,7 +188,9 @@ int main(int argc, char **argcv) {
                 sommaAdE=sommaAdE+project_data->vec[i].voto_AdE;
                 sommaSO=sommaSO+votiFinali[i].VotoSO;
             }
-            //printf("SOMMA AdE: %d\n  SOMMA SO: %d\n", sommaAdE, sommaSO); 
+            #ifdef DEBUG
+            printf("SOMMA AdE: %d\n  SOMMA SO: %d\n", sommaAdE, sommaSO); 
+            #endif
                 
             mediaAdE=(float)sommaAdE/(float)POP_SIZE;
             mediaSO=(float)sommaSO/(float)POP_SIZE;
@@ -241,75 +222,78 @@ int main(int argc, char **argcv) {
     }
 }
 
-int letturaRighe () {
-        int i =0;
-        char c;
-        FILE *fp = fopen("opt.conf", "r");
-       
-        if( fp == NULL ) {
-            printf("[CorsoMaster] Errore nell'apertura del file di configurazione\n");
-            exit(EXIT_FAILURE);
-        }
-        for (c = getc(fp); c != EOF; c = getc(fp)) 
-            if (c == '\n') // Increment count if this character is newline 
-                i++; 
-        fclose(fp);
-        return i-1;
-
-}
-
-void letturaFile (gruppo_t *gruppi) {
-        float f;
-        int nof_elems;
-        char s[6];
-        int i =0, j=0;
-        char line[50];
-       
-        FILE *file = fopen("opt.conf", "r");
-        while (fgets ( line, 50, file ) != NULL){
-            //printf("leggo  riga %i ", j+1);
-
-            if(strncmp (line, "nof_invites", 11) == 0) {
-
-                sscanf(line, "%s %s\n", s, nof_invites);
-                //printf(" - nof_invites %d\n", nof_elems);
-            
-            }
-            else {
-                sscanf(line, "%s %d %f\n", s, &nof_elems, &f);
-                //printf("elementi %d - prob %f\n", nof_elems, f);
-            
-                gruppi[i].nof_elems = nof_elems;
-                gruppi[i].prob = f;
-                
-                sprintf(gruppi[i].nof_elems_str, "%d", gruppi[i].nof_elems);
-                if(i>0) {
-                    gruppi[i].min = gruppi[i-1].max;
-                }
-                else {
-                    gruppi[i].min = 0;
-                }
-                gruppi[i].max = gruppi[i].min + gruppi[i].prob;
-                i++; 
-            }
-            j++;
-            
-    } 
-
-}
-
-void  suddividiGruppi(char **sudd, gruppo_t *gruppi, int nGruppi) {
-    int i=0, j=0;
-    int trovato=0;
+void letturaFile() {
+    float p2, p3, p4; //Distribuzioni numerosità gruppi
+    float check=0;
+    char s[11];
+    char g[8];
+    int i =0, j2=0, j3 = 0;
     
-    for(i=0; i<POP_SIZE; i++) {
-        
-        if(i>(gruppi[j].max *(POP_SIZE-1))) {
-            j++;
-        }
-        sudd[i] = gruppi[j].nof_elems_str;
-       
+    char line[50]; //vettore per lettura riga file
+    
+    FILE *file = fopen("opt.conf", "r");
+
+    if( file == NULL ) {
+        printf("[CorsoMaster] Errore nell'apertura del file di configurazione\n");
+        exit(EXIT_FAILURE);
     }
+
+    while (fgets ( line, 50, file ) != NULL){    
+        if(strncmp (line, "nof_invites", 11) == 0) {
+            sscanf(line, "%s %s\n", s, nof_invites);
+        }
+        else if(strncmp (line, "gruppo_2", 8) == 0) {
+            sscanf(line, "%s %f\n", g, &p2);
+
+        }
+        else if(strncmp (line, "gruppo_3", 8) == 0) {
+            sscanf(line, "%s %f\n", g, &p3);
+        }
+        else if(strncmp (line, "gruppo_4", 8) == 0) {
+            sscanf(line, "%s %f\n", g, &p4);
+        }
+    }
+    #ifdef DEBUG
+    printf("[CorsoMaster] no_of_invites %s\n", nof_invites);
+    printf("[CorsoMaster] Gruppo 2 %.2f\n", p2);
+    printf("[CorsoMaster] Gruppo 3 %.2f\n", p3);
+    printf("[CorsoMaster] Gruppo 4 %.2f\n", p4);
+    #endif
+
+    check = p2+p3+p4;
+
+    if(check!=1) {
+        printf("[CorsoMaster] La distribuzione dei gruppi non è corretta\n");
+        exit(EXIT_FAILURE);
+    }
+
+    j2 = (int)(p2*POP_SIZE);
+    j3 = j2+(int)(p3*POP_SIZE);
+    #ifdef DEBUG
+    printf("[CorsoMaster] j2 %d\n", j2);
+    printf("[CorsoMaster] j3 %d\n", j3);
+    #endif
+
+    for(i=0;i<POP_SIZE; i++) {
+        if(i<j2) {
+            suddivisioneGruppi[i] = "2";
+        }
+        else if (i>= j2 && i<j3){
+            suddivisioneGruppi[i] = "3";
+        }
+        else {
+            suddivisioneGruppi[i] = "4";
+        }
+    }
+
+    fclose(file);
+    #ifdef DEBUG
+    printf("[CorsoMaster] SuddivisioneGruppi\n");    
+    for(i=0; i<POP_SIZE; i++) {
+        printf(" [%d %s]", i, suddivisioneGruppi[i]);
+    } 
+    printf("\n");
+    #endif
 }
 
 void reset_sem(){
@@ -340,8 +324,7 @@ void handle_alarm (int signal){
 
         
     }
-    else if (signal==SIGINT){ //handler ctrl + c
-        //causa l'immediata terminazione dei figli
+    else if (signal==SIGINT){ //handler ctrl + c causa l'immediata terminazione dei figli
         for (i=0; i<POP_SIZE;i++){
             kill (children[i], SIGKILL);
         }
