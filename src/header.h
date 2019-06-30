@@ -26,6 +26,7 @@
 #define INIT_READY 0 //semaforo per verificare la fine dell'inizializzazione dei figli
 #define SHR_SCRIPT 1 //semaforo per scrittura su memoria condivisa
 
+
 //Struttura dei msg inviati
 typedef struct msginvite {
     long mtype; // sempre PID/matr del destinatario

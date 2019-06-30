@@ -71,11 +71,11 @@ int main() {
     }
     printf("[CorsoMaster] Step 1 - Creazione vettore di semafori OK\n");
     reset_sem();
+    fill_semshr();
    
     
 
     //----------------------------impostazione memoria condivisa
-    fill_semshr();
     if((shr_mem=shmget(SHR_ID, POP_SIZE*sizeof(info_shr_t), IPC_CREAT|0666))<0 ){
         printf("[CorsoMaster] Errore nella creazione della memoria condivisa \n ");
         perror("shmget");
