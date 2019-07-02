@@ -10,7 +10,6 @@ int     trova_leader (int name_g);
 void    numstudentipervotoAdE();
 void    numstudentipervotoSO();
 void    reset_sem();
-void    fill_semshr();
 void    handle_alarm (int signal);
 
 
@@ -71,7 +70,7 @@ int main() {
     }
     printf("[CorsoMaster] Step 1 - Creazione vettore di semafori OK\n");
     reset_sem();
-    fill_semshr();
+ 
    
     
 
@@ -173,9 +172,10 @@ int main() {
     
     msgctl(msg_id, IPC_RMID, NULL);
     msgctl(msg_master, IPC_RMID, NULL);
-    semctl(sem_init, 2, IPC_RMID, 0);
+    semctl(sem_init, 0, IPC_RMID);
+    semctl(sem_init, 1, IPC_RMID);
 
-
+ 
 
     printf("Vuoi stampare ilnumero studenti per ogni voto e il voto medio dei due esami? [Y/N]");
     scanf("%c", &printMedia);
@@ -298,14 +298,7 @@ void letturaFile() {
 
 void reset_sem(){
     semctl(sem_init, INIT_READY, SETVAL, 0);
-    semctl(sem_init, SHR_SCRIPT, SETVAL, 0);
-}
-
-void fill_semshr(){
-    shr.sem_flg=0;
-    shr.sem_num=SHR_SCRIPT;
-    shr.sem_op=1;
-    semop(sem_init, &shr, 1);
+    semctl(sem_init, SHR_SCRIPT, SETVAL, 1);
 }
 
 void handle_alarm (int signal){
@@ -331,7 +324,8 @@ void handle_alarm (int signal){
         //elimina tutte le strutture IPC create
         msgctl(msg_id, IPC_RMID, NULL);
         msgctl(msg_master, IPC_RMID, NULL);
-        semctl(sem_init, 0, IPC_RMID, 0);
+        semctl(sem_init, 0, IPC_RMID);
+        semctl(sem_init, 1, IPC_RMID);
         shmctl(shr_mem,IPC_RMID, NULL);
         printf("Premuto CTRL+C");
         exit -1;
@@ -344,6 +338,7 @@ void calcoloVotiFinali() {
     
     printf("[CorsoMaster] ------------------------------- Calcolo voti finali\n");
     for(i=0; i<POP_SIZE; i++){
+        //Blocco Leader gruppi
         if (project_data->vec[i].tipo_componente =='L'){
             if (project_data->vec[i].stato_g=='C'){
                 //il gruppo e' chiuso
@@ -364,6 +359,7 @@ void calcoloVotiFinali() {
                 printf("[CorsoMaster]\n Errore nell'invio voto finale (studente %d)",project_data->vec[i].matricola);
             }
         }
+        //Blocco Follower gruppi
         else if (project_data->vec[i].tipo_componente =='F'){
             if (project_data->vec[trova_leader(project_data->vec[i].nome_gruppo)].stato_g=='C'){
                 if (conta_membrigruppo(project_data->vec[i].nome_gruppo)==project_data->vec[i].nof_elems){
@@ -413,7 +409,7 @@ int conta_membrigruppo (int nome_g){
  }
  
 
-       
+ //Ritorna la posizione in memoria condivisa del leader del gruppo name_g      
  int trova_leader (int name_g){
     int k=0;
     for(k=0;k<POP_SIZE;k++) {
