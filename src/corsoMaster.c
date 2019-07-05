@@ -19,6 +19,8 @@ pid_t   children[POP_SIZE];
 msgFromMaster_t votiFinali[POP_SIZE];
 char* suddivisioneGruppi[POP_SIZE];
 
+int childrens = 0;
+
 int sem_init; // identificatore del vettore di semafori
 int shr_mem; //identificatore della memoria condivisa
 int msg_id; //identificatore della coda di messaggi
@@ -44,7 +46,7 @@ int main() {
     int sommaAdE=0;
     float mediaSO=0;
     int sommaSO=0;
-    
+
     struct sigaction end;  // strutture dati di sistema per la gestione dell'alarm
     sigset_t  mymask;
 
@@ -83,7 +85,6 @@ int main() {
     project_data=shmat(shr_mem, NULL, 0);
     project_data->cur_idx=0;
     
-     
     printf("[CorsoMaster] Step 2 - Imposto la coda di messaggi\n");
      
     //----------------------------impostazione coda di messaggi
@@ -102,10 +103,9 @@ int main() {
         exit(-1);
     }
 
-
     printf("[CorsoMaster] Step 3 - Genero i processi figli (studenti)\n");
 
-    while(i < POP_SIZE) {
+    while(childrens < POP_SIZE) {
         child = fork();
         switch (child)
         {
@@ -122,10 +122,10 @@ int main() {
         
             default:
                 //parent process
-                children[i] = child;
+                children[childrens] = child;
                 break;
         }
-        i++;
+        childrens++;
 
     }
     //master in attesa del completamento inizializzazione figli
@@ -141,10 +141,7 @@ int main() {
         kill(children[i], SIGUSR1);
     }
     //gestione del segnale di fine alarm
-    end.sa_handler=handle_alarm;
-    end.sa_flags=0;
-    sigemptyset(&mymask);
-    end.sa_mask=mymask;
+    
     sigaction(SIGALRM, &end, NULL);
     //mando il segnale di ALARM per chiudere lo scambio
     
@@ -209,7 +206,7 @@ int main() {
 
             printf("Voto medio Sistemi Operativi %2.2f\n\n",  mediaSO);
             
-            printf("Fine della simulazione");
+            printf("Fine della simulazione\n");
             shmctl(shr_mem,IPC_RMID, NULL);
             exit(0);
             break;
@@ -302,10 +299,33 @@ void reset_sem(){
 }
 
 void handle_alarm (int signal){
+    printf("[CorsoMaster] handle_alarm\n");
+       
     int i=0;
-    if(signal==SIGALRM){
+
+    if (signal == SIGINT){ //handler ctrl + c causa l'immediata terminazione dei figli
+        printf("Premuto CTRL+C\n");
+        if(childrens > 0) {
+            printf("Uccido i processi figli\n");
+            
+            for (i=0; i < childrens;i++) {
+                kill (children[i], SIGKILL);
+            }
+        }
+        
+
+        //elimina tutte le strutture IPC create
+        msgctl(msg_id, IPC_RMID, NULL);
+        msgctl(msg_master, IPC_RMID, NULL);
+        semctl(sem_init, 0, IPC_RMID);
+        semctl(sem_init, 1, IPC_RMID);
+        shmctl(shr_mem,IPC_RMID, NULL);
+        printf("Esco da corsoMaster...\n");
+        fflush(stdout);
+        raise(SIGKILL);
+    }
+    else if(signal==SIGALRM){
         printf("[CorsoMaster] ------------------------------- Fine Cronometro\n");
-    
         for (i=0; i<POP_SIZE; i++){
             #ifdef DEBUG
             printf("[CorsoMaster] inoltro fine alarm a %d\n",children[i]);
@@ -317,19 +337,7 @@ void handle_alarm (int signal){
 
         
     }
-    else if (signal==SIGINT){ //handler ctrl + c causa l'immediata terminazione dei figli
-        for (i=0; i<POP_SIZE;i++){
-            kill (children[i], SIGKILL);
-        }
-        //elimina tutte le strutture IPC create
-        msgctl(msg_id, IPC_RMID, NULL);
-        msgctl(msg_master, IPC_RMID, NULL);
-        semctl(sem_init, 0, IPC_RMID);
-        semctl(sem_init, 1, IPC_RMID);
-        shmctl(shr_mem,IPC_RMID, NULL);
-        printf("Premuto CTRL+C");
-        exit -1;
-    }
+    
 }
 
 
