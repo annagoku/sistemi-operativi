@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <errno.h>
 #include <time.h>
@@ -13,15 +14,15 @@
 #include <ctype.h>
 
 
-#define POP_SIZE  300 // num studenti
+#define POP_SIZE  350 // num studenti
 #define MAX_REJECT 2 // num max rifiuti
-#define SIM_TIME 15 // tempo di simulazione
+#define SIM_TIME 20 // tempo di simulazione
 
 //codici identificativi IPC
-#define SEM_ID  70500
-#define SHR_ID  70651
-#define MSG_ID  7190
-#define MSG_MASTER 7200
+#define SEM_ID  70501
+#define SHR_ID  70652
+#define MSG_ID  7191
+#define MSG_MASTER 7201
 
 #define INIT_READY 0 //semaforo per verificare la fine dell'inizializzazione dei figli
 #define SHR_SCRIPT 1 //semaforo per scrittura su memoria condivisa

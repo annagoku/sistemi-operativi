@@ -164,7 +164,7 @@ int main() {
         n--;
     }
     
-
+    
     printf("[CorsoMaster] Step 5 - Computo della media\n");
     
     msgctl(msg_id, IPC_RMID, NULL);
@@ -309,7 +309,7 @@ void handle_alarm (int signal){
             printf("Uccido i processi figli\n");
             
             for (i=0; i < childrens;i++) {
-                kill (children[i], SIGKILL);
+                kill (children[i], SIGTERM);
             }
         }
         
@@ -382,9 +382,11 @@ void calcoloVotiFinali() {
             }
             votiFinali[i].mtype=project_data->vec[i].matricola;
             votiFinali[i].VotoAdE=project_data->vec[i].voto_AdE;
-            
+            #ifdef DEBUG
+            printf("[CorsoMaster] Invio voto Studente %5ld - i: %4d - Voto AdE %2d - Voto SO %2d\n", votiFinali[i].mtype, i, votiFinali[i].VotoAdE, votiFinali[i].VotoSO );
+            #endif
             if(msgsnd(msg_master, &votiFinali[i], sizeof(votiFinali[i])-sizeof(long),0)==-1){
-                printf("[CorsoMaster]\n Errore nell'invio voto finale (studente %d)",project_data->vec[i].matricola);
+                printf("[CorsoMaster] Errore nell'invio voto finale (studente %d)\n",project_data->vec[i].matricola);
             }
         }  
         else {
