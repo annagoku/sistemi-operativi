@@ -166,16 +166,15 @@ int main() {
     
     
     printf("[CorsoMaster] Step 5 - Computo della media\n");
-    
+
+    printf("Vuoi stampare ilnumero studenti per ogni voto e il voto medio dei due esami? [Y/N]");
+    scanf("%c", &printMedia);
+
+    // ----- Pulizia code e semafori
     msgctl(msg_id, IPC_RMID, NULL);
     msgctl(msg_master, IPC_RMID, NULL);
     semctl(sem_init, 0, IPC_RMID);
     semctl(sem_init, 1, IPC_RMID);
-
- 
-
-    printf("Vuoi stampare ilnumero studenti per ogni voto e il voto medio dei due esami? [Y/N]");
-    scanf("%c", &printMedia);
 
     switch (toupper(printMedia)){
 
@@ -217,6 +216,9 @@ int main() {
             exit(0);
             break;
     }
+
+
+
 }
 
 void letturaFile() {
@@ -309,7 +311,7 @@ void handle_alarm (int signal){
             printf("Uccido i processi figli\n");
             
             for (i=0; i < childrens;i++) {
-                kill (children[i], SIGTERM);
+                kill (children[i], SIGKILL);
             }
         }
         

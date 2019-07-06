@@ -74,6 +74,7 @@ int main(int argc, char **argcv) {
     //recupero memoria condivisa
     if((shr_mem=shmget(SHR_ID, sizeof(&project_data), 0600))<0 ){
         printf("[Studente %d] Errore nel recupero della memoria condivisa \n ",studente.matricola);
+        perror("shmget");
         exit(-2);
     }
     project_data=shmat(shr_mem, NULL, 0);
@@ -176,7 +177,7 @@ int main(int argc, char **argcv) {
             #ifdef DEBUG
             printf("[Studente %d - lab %c - i:%d] (%d) mi metto in ricezione (stato %c) \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, project_data->vec[shr_pos].stato_s);
             #endif
-            //sleep(1);
+            
 
             
 
@@ -202,9 +203,9 @@ int main(int argc, char **argcv) {
             }
             else{
                 
-                //sleep(1);
+                
                 if (received.aim=='I'){
-                    //sleep(1);
+                    
                     if (project_data->vec[shr_pos].stato_s!='F'){
                         //rifiuto messaggio
                         if(rejectInvite(shr_pos, &studente, &received)==-1){
@@ -241,7 +242,7 @@ int main(int argc, char **argcv) {
                                 }        
                             }      
                                                
-                        }sleep(1);
+                        }
                     }                   
                 }
             }
@@ -269,7 +270,7 @@ int main(int argc, char **argcv) {
                             
                         }
                     }
-                    sleep(1);
+                    
                 }
                 else if (errno==ENOMSG){
                     if( project_data->vec[shr_pos].stato_s=='F') {
@@ -317,7 +318,7 @@ int main(int argc, char **argcv) {
                 }
                 else {
                     if(received.aim=='I') {
-                        //sleep(1);
+                        
                         if(count_rjt<MAX_REJECT && received.numCGr!=studente.nof_elems) {
                             //provo a vedere se trovo un gruppo migliore
                             count_rjt++;
@@ -337,7 +338,7 @@ int main(int argc, char **argcv) {
                             }
                             else {
                                 //genero un numero casuale per decidere se propormi oppure se vedere se mi arrivano inviti migliori
-                                sleep(1);
+                                
                                 if(studente.voto_AdE >= 24) {
                                     fate = 1 + rand() % 2;
                                     if(fate==1) {
@@ -349,8 +350,6 @@ int main(int argc, char **argcv) {
                         }
                         else {
                             //accetto il messaggio
-                            sleep(1);
-
                             if(acceptInvite(shr_pos, &studente, &received)==-1){
                                 if(flagSignal == 0 && preAlarm==1 &&  errno==EINTR) {
                                     // allora è stato ricevuto il preAlarm
@@ -394,6 +393,7 @@ int main(int argc, char **argcv) {
     if(msgrcv(msg_master, &votoFinale, sizeof(votoFinale)-sizeof(long), studente.matricola, 0)==-1){
         printf("[Studente %d - lab %c - i:%4d] Errore nella ricezione del voto finale \n", studente.matricola, studente.glab, shr_pos);
         perror("msgrcv");
+        
     } 
     else{
         
@@ -420,18 +420,13 @@ void sigHandler (int sign){
     else if (sign == SIGALRM) {
             flagSignal=1;
     }
-    else if (sign==SIGTERM) {
-        printf("STUDENTE %d \n", shr_pos);
-        fflush(stdout);
-        sleep(4);
-        raise(SIGKILL);
-    }
     //ctrl+c
     else if (sign==SIGINT) {
+        #ifdef DEBUG
         printf("STUDENTE %d \n", shr_pos);
         fflush(stdout);
-        //sleep(4);
-        //raise(SIGKILL);
+        #endif
+        raise(SIGKILL);
     }
 }
     

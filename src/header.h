@@ -19,9 +19,9 @@
 #define SIM_TIME 20 // tempo di simulazione
 
 //codici identificativi IPC
-#define SEM_ID  70501
-#define SHR_ID  70652
-#define MSG_ID  7191
+#define SEM_ID  70500
+#define SHR_ID  70651
+#define MSG_ID  7190
 #define MSG_MASTER 7201
 
 #define INIT_READY 0 //semaforo per verificare la fine dell'inizializzazione dei figli
