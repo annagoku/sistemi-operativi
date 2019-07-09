@@ -77,7 +77,7 @@ int main() {
     
 
     //----------------------------impostazione memoria condivisa
-    if((shr_mem=shmget(SHR_ID, POP_SIZE*sizeof(info_shr_t), IPC_CREAT|0666))<0 ){
+    if((shr_mem=shmget(SHR_ID, POP_SIZE*(sizeof(info_shr_t)+sizeof(unsigned long)), IPC_CREAT|0666))<0 ){
         printf("[CorsoMaster] Errore nella creazione della memoria condivisa \n ");
         perror("shmget");
         exit(-1);
@@ -116,7 +116,7 @@ int main() {
             case 0:
                 // child process
 
-                execve("./studente",(char *[]){ "./studente ", suddivisioneGruppi[i], nof_invites }, NULL);
+                execve("./studente",(char *[]){ "./studente ", suddivisioneGruppi[childrens], nof_invites }, NULL);
                 exit(0);
                 break;
         

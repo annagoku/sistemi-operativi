@@ -18,7 +18,7 @@ int shr_mem; //identificatore della memoria condivisa
 int msg_id; //identificatore della coda di messaggi
 int msg_master; //identificatore della coda di messaggi master finale
 int volatile flagSignal=0;
-int preAlarm = 0;
+int volatile preAlarm = 0;
 struct shared_data *project_data; //puntatore a memoria condivisa 
 
 // --------------------- Definizione prototipi di funzione
@@ -65,6 +65,7 @@ int main(int argc, char **argcv) {
     else {
         studente.glab = '3';
     }
+
     
     //recupero semaforo
     if ((sem_init=semget(SEM_ID, 2, 0600))==-1){
@@ -72,7 +73,7 @@ int main(int argc, char **argcv) {
         exit(-2);
     }
     //recupero memoria condivisa
-    if((shr_mem=shmget(SHR_ID, sizeof(&project_data), 0600))<0 ){
+    if((shr_mem=shmget(SHR_ID, POP_SIZE*(sizeof(info_shr_t)+sizeof(unsigned long)), 0600))<0 ){
         printf("[Studente %d] Errore nel recupero della memoria condivisa \n ",studente.matricola);
         perror("shmget");
         exit(-2);
@@ -102,13 +103,12 @@ int main(int argc, char **argcv) {
     shr_pos=project_data->cur_idx;
     // inizializzo prendendo come seme l'indice
     srand(shr_pos); 
-    
     // il voto lo prendo come uniforme tra 18 e 30
     studente.voto_AdE = 18 + rand() % (30 -18 +1);
     #ifdef DEBUG
     printf("[Studente %d - lab %c - i:%d] Voto %d, pref. gruppo %d, lab. %c\n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE, studente.nof_elems, studente.glab);
     
-    printf("[Studente %d - lab %c - i:%d] Scrivo in mem condivisa \n",studente.matricola, studente.glab, shr_pos);
+    //printf("[Studente %d - lab %c - i:%d] Scrivo in mem condivisa \n",studente.matricola, studente.glab, shr_pos);
     #endif
     
     project_data->vec[shr_pos].matricola=studente.matricola;
@@ -179,7 +179,7 @@ int main(int argc, char **argcv) {
             #endif
             
 
-            
+           
 
 
 
@@ -192,6 +192,7 @@ int main(int argc, char **argcv) {
                             #ifdef DEBUG
                             printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
                             #endif
+                           
                             project_data->vec[shr_pos].stato_g='C';
                             project_data->vec[shr_pos].stato_s='A';
                             project_data->vec[shr_pos].tipo_componente='L';
@@ -213,6 +214,7 @@ int main(int argc, char **argcv) {
                                 if(flagSignal == 0 && preAlarm == 1) {
                                     // allora è stato ricevuto un preAlarm
                                     // devo riprovare a rifiutare  il messaggio
+                                
                                     if(rejectInvite(shr_pos, &studente, &received)==-1){
                                         #ifdef DEBUG
                                         printf("[Studente %d - lab %c - i:%d] Errore nell'invio della risposta \n", studente.matricola, studente.glab, shr_pos);
@@ -277,7 +279,7 @@ int main(int argc, char **argcv) {
                         if(preAlarm == 1) {
                             #ifdef DEBUG
                             printf("[Studente %d - lab %c - i:%d] (%d) Ricevuto preAlarm -> chiudo il gruppo da solo \n", studente.matricola, studente.glab, shr_pos, studente.voto_AdE);
-                            #endif                                    
+                            #endif                                  
                             project_data->vec[shr_pos].stato_g='C';
                             project_data->vec[shr_pos].stato_s='A';
                             project_data->vec[shr_pos].tipo_componente='L';
