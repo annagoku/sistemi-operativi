@@ -17,7 +17,7 @@ void    handle_alarm (int signal);
 
 pid_t   children[POP_SIZE];
 msgFromMaster_t votiFinali[POP_SIZE];
-char* suddivisioneGruppi[POP_SIZE];
+char *suddivisioneGruppi[POP_SIZE];
 
 int childrens = 0;
 
